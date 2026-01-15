@@ -118,13 +118,13 @@ export default function App() {
                 )}
 
                 {hasResults && (
-                    <motion.div key="results-header" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6 relative z-20">
-                        <div className="flex items-center gap-4">
-                            <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Files</p><p className="font-orbitron text-xl text-white">{analysisData.totalFiles}</p></div>
-                            <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Imports</p><p className="font-orbitron text-xl text-white">{analysisData.totalImports}</p></div>
-                            <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Third-party</p><p className="font-orbitron text-xl text-node-import">{analysisData.thirdPartyImports.length}</p></div>
-                        </div>
-                        <button onClick={handleReset} className="glass rounded-lg px-4 py-2 text-sm text-node-stdlib hover:text-white border border-cyber-border transition-colors">New Scan</button>
+                    <motion.div key="results-header" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4 mb-6 relative z-20">
+                        <button onClick={handleReset} className="glass rounded-lg px-4 py-3 text-sm font-orbitron text-cta-primary hover:text-white hover:bg-cta-primary/20 border border-cta-primary/50 transition-all">
+                            ← New Scan
+                        </button>
+                        <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Files</p><p className="font-orbitron text-xl text-white">{analysisData.totalFiles}</p></div>
+                        <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Imports</p><p className="font-orbitron text-xl text-white">{analysisData.totalImports}</p></div>
+                        <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Third-party</p><p className="font-orbitron text-xl text-node-import">{analysisData.thirdPartyImports.length}</p></div>
                     </motion.div>
                 )}
 
