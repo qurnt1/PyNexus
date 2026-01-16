@@ -119,18 +119,20 @@ export default function ResultsPanel({ thirdPartyImports, isVisible, directoryHa
                     </div>
                 </div>
 
-                <button onClick={handleWriteToFolder} disabled={isGenerating} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-cta-primary text-cta-text font-orbitron font-semibold rounded-lg hover:shadow-glow-green transition-all disabled:opacity-50">
-                    {isGenerating ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" /><span>Fetching versions...</span></>
-                    ) : directoryHandle && isFileSystemAccessSupported ? (
-                        <><Save className="w-4 h-4" /><span>Save requirements.txt</span></>
-                    ) : (
-                        <><Download className="w-4 h-4" /><span>Download requirements.txt</span></>
-                    )}
+                <button onClick={handleWriteToFolder} disabled={isGenerating} className="w-full flex flex-col items-center justify-center gap-1 py-3 px-4 bg-cta-primary text-cta-text font-orbitron font-semibold rounded-lg hover:shadow-glow-green transition-all disabled:opacity-50">
+                    <div className="flex items-center gap-2">
+                        {isGenerating ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /><span>Fetching versions...</span></>
+                        ) : directoryHandle && isFileSystemAccessSupported ? (
+                            <><Save className="w-4 h-4" /><span>Save requirements.txt</span></>
+                        ) : (
+                            <><Download className="w-4 h-4" /><span>Download requirements.txt</span></>
+                        )}
+                    </div>
+                    <span className="text-[10px] font-normal opacity-80">
+                        {directoryHandle && isFileSystemAccessSupported ? `Saves directly to "${directoryHandle.name}"` : 'Versions fetched from PyPI'}
+                    </span>
                 </button>
-                <p className="text-[10px] text-node-stdlib text-center">
-                    {directoryHandle && isFileSystemAccessSupported ? `Saves directly to "${directoryHandle.name}"` : 'Versions fetched from PyPI'}
-                </p>
             </div>
         </motion.div>
     );

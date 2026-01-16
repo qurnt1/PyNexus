@@ -89,7 +89,7 @@ export default function App() {
     const hasResults = view === 'results' && analysisData && Object.keys(analysisData.files || {}).length > 0;
 
     return (
-        <div className="min-h-screen bg-cyber-bg cyber-grid relative overflow-hidden">
+        <div className={`min-h-screen bg-cyber-bg cyber-grid relative ${hasResults ? 'overflow-hidden h-screen' : 'overflow-hidden'}`}>
             <Header />
             <ScanTerminal logs={logs} isScanning={isScanning} progress={scanProgress} totalFiles={totalFiles} />
 
