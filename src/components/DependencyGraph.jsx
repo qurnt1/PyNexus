@@ -422,7 +422,7 @@ export default function DependencyGraph({ data }) {
             {/* ================================================================
                 TOP-LEFT: Search Bar (below the header stats row)
             ================================================================ */}
-            <div className="absolute top-44 left-6 z-40 pointer-events-auto">
+            <div className="absolute top-[85px] left-6 z-40 pointer-events-auto">
                 <div className="relative">
                     <div className="flex items-center gap-2 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 min-w-[260px] shadow-lg">
                         <Search className="w-4 h-4 text-node-stdlib" />
@@ -481,7 +481,7 @@ export default function DependencyGraph({ data }) {
             ================================================================ */}
             <button
                 onClick={handleCenterView}
-                className="absolute top-24 right-[350px] z-40 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-4 py-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group flex items-center gap-2"
+                className="absolute top-4 right-[350px] z-40 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-4 py-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group flex items-center gap-2"
                 title="Reset View"
             >
                 <Focus className="w-4 h-4 text-node-stdlib group-hover:text-node-file transition-colors" />
