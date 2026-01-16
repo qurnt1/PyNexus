@@ -31,7 +31,7 @@ const buildPyPiUrl = (rootName) => {
 // COMPONENT
 // =============================================================================
 
-export default function DependencyGraph({ data, width, height }) {
+export default function DependencyGraph({ data }) {
     const graphRef = useRef();
     const containerRef = useRef();
 
@@ -40,7 +40,7 @@ export default function DependencyGraph({ data, width, height }) {
     const [lockedNode, setLockedNode] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFocused, setSearchFocused] = useState(false);
-    const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
+    const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
     // Pre-loaded Python icon for canvas rendering
     const [pythonIcon, setPythonIcon] = useState(null);
@@ -59,24 +59,31 @@ export default function DependencyGraph({ data, width, height }) {
     }, []);
 
     // -------------------------------------------------------------------------
-    // Container Size Observer
+    // ResizeObserver - Tracks container size accurately
     // -------------------------------------------------------------------------
     useEffect(() => {
-        const updateSize = () => {
-            if (containerRef.current) {
-                const rect = containerRef.current.getBoundingClientRect();
-                if (rect.width > 0 && rect.height > 0) {
-                    setContainerSize({ width: rect.width, height: rect.height });
+        const container = containerRef.current;
+        if (!container) return;
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect;
+                if (width > 0 && height > 0) {
+                    setDimensions({ width, height });
                 }
             }
-        };
-        updateSize();
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
-    }, []);
+        });
 
-    const graphWidth = width && width > 0 ? width : containerSize.width;
-    const graphHeight = height && height > 0 ? height : containerSize.height;
+        resizeObserver.observe(container);
+
+        // Initial measurement
+        const rect = container.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+            setDimensions({ width: rect.width, height: rect.height });
+        }
+
+        return () => resizeObserver.disconnect();
+    }, []);
 
     // -------------------------------------------------------------------------
     // Build Graph Data
@@ -358,13 +365,17 @@ export default function DependencyGraph({ data, width, height }) {
     // Render
     // -------------------------------------------------------------------------
     return (
-        <div ref={containerRef} className="relative w-full h-full flex-1" style={{ minHeight: 400 }}>
-            {/* Force Graph */}
+        <div
+            ref={containerRef}
+            className="absolute inset-0 w-full h-full"
+            style={{ touchAction: "none" }}
+        >
+            {/* Force Graph - Fills entire container */}
             <ForceGraph2D
                 ref={graphRef}
                 graphData={graphData}
-                width={graphWidth}
-                height={graphHeight}
+                width={dimensions.width}
+                height={dimensions.height}
                 backgroundColor="transparent"
                 nodeCanvasObjectMode={() => "replace"}
                 nodeCanvasObject={paintNode}
@@ -389,8 +400,8 @@ export default function DependencyGraph({ data, width, height }) {
                 maxZoom={12}
             />
 
-            {/* Search Bar - Top Left */}
-            <div className="absolute top-4 left-4 z-20">
+            {/* Search Bar - Top Left (with pointer-events-auto) */}
+            <div className="absolute top-4 left-4 z-20 pointer-events-auto">
                 <div className="relative">
                     <div className="flex items-center gap-2 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 min-w-[260px] shadow-lg">
                         <Search className="w-4 h-4 text-node-stdlib" />
@@ -447,14 +458,14 @@ export default function DependencyGraph({ data, width, height }) {
             {/* Center View Button - Top Right (before Inspector) */}
             <button
                 onClick={handleCenterView}
-                className="absolute top-4 right-[310px] z-20 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border p-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group"
+                className="absolute top-4 right-[310px] z-20 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border p-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group"
                 title="Center View"
             >
                 <Focus className="w-5 h-5 text-node-stdlib group-hover:text-node-file transition-colors" />
             </button>
 
             {/* Inspector Panel - Top Right */}
-            <motion.div layout className="absolute top-4 right-4 z-20 w-72">
+            <motion.div layout className="absolute top-4 right-4 z-20 w-72 pointer-events-auto">
                 <div
                     className="bg-cyber-bg/95 backdrop-blur-xl rounded-xl border-2 overflow-hidden shadow-2xl"
                     style={{
@@ -611,7 +622,7 @@ export default function DependencyGraph({ data, width, height }) {
             </motion.div>
 
             {/* Legend - Bottom Left */}
-            <div className="absolute bottom-4 left-4 bg-cyber-bg/95 backdrop-blur-xl rounded-xl p-3 text-xs space-y-2 z-10 border border-cyber-border shadow-lg">
+            <div className="absolute bottom-4 left-4 bg-cyber-bg/95 backdrop-blur-xl rounded-xl p-3 text-xs space-y-2 z-10 border border-cyber-border shadow-lg pointer-events-auto">
                 <div className="flex items-center gap-2">
                     <div
                         className="w-3 h-3 rounded-full"
@@ -645,7 +656,7 @@ export default function DependencyGraph({ data, width, height }) {
             </div>
 
             {/* Controls Hint - Bottom Right */}
-            <div className="absolute bottom-4 right-4 bg-cyber-bg/95 backdrop-blur-xl rounded-xl px-4 py-2.5 text-[11px] text-node-stdlib z-10 border border-cyber-border shadow-lg">
+            <div className="absolute bottom-4 right-4 bg-cyber-bg/95 backdrop-blur-xl rounded-xl px-4 py-2.5 text-[11px] text-node-stdlib z-10 border border-cyber-border shadow-lg pointer-events-auto">
                 <span className="text-cyber-highlight">Scroll</span> to zoom •{" "}
                 <span className="text-cyber-highlight">Drag</span> to pan •{" "}
                 <span className="text-cyber-highlight">Click</span> to lock

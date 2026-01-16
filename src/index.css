@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =============================================================================
+   VIEWPORT FOUNDATION - Critical for graph interactivity
+   ============================================================================= */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -12,11 +25,12 @@ body {
   font-family: 'Rajdhani', sans-serif;
   background-color: #060617;
   color: #e2e8f0;
-  min-height: 100vh;
-  overflow-x: hidden;
 }
 
-/* Glassmorphism utility */
+/* =============================================================================
+   GLASSMORPHISM
+   ============================================================================= */
+
 .glass {
   background: rgba(14, 16, 51, 0.7);
   backdrop-filter: blur(12px);
@@ -24,11 +38,17 @@ body {
   border: 1px solid rgba(36, 38, 95, 0.8);
 }
 
-/* Glow animations */
+/* =============================================================================
+   GLOW ANIMATIONS
+   ============================================================================= */
+
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(45, 125, 255, 0.3);
   }
+
   50% {
     box-shadow: 0 0 40px rgba(45, 125, 255, 0.6);
   }
@@ -38,6 +58,7 @@ body {
   0% {
     transform: translateY(-100%);
   }
+
   100% {
     transform: translateY(100vh);
   }
@@ -47,7 +68,10 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Custom scrollbar */
+/* =============================================================================
+   CUSTOM SCROLLBAR
+   ============================================================================= */
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -65,18 +89,24 @@ body {
   background: #2D7DFF;
 }
 
-/* Neon text effect */
+/* =============================================================================
+   NEON TEXT EFFECT
+   ============================================================================= */
+
 .neon-text {
-  text-shadow: 
+  text-shadow:
     0 0 5px currentColor,
     0 0 10px currentColor,
     0 0 20px currentColor,
     0 0 40px currentColor;
 }
 
-/* Grid background pattern */
+/* =============================================================================
+   GRID BACKGROUND PATTERN
+   ============================================================================= */
+
 .cyber-grid {
-  background-image: 
+  background-image:
     linear-gradient(rgba(36, 38, 95, 0.3) 1px, transparent 1px),
     linear-gradient(90deg, rgba(36, 38, 95, 0.3) 1px, transparent 1px);
   background-size: 50px 50px;

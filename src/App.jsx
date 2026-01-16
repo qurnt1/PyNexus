@@ -12,19 +12,11 @@ import { isStdlibModule } from './utils/stdlibModules';
 export default function App() {
     const [view, setView] = useState('upload');
     const [analysisData, setAnalysisData] = useState(null);
-    const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
     const [directoryHandle, setDirectoryHandle] = useState(null);
     const [toast, setToast] = useState({ message: '', type: 'success', isVisible: false });
     const [logs, setLogs] = useState([]);
     const [scanProgress, setScanProgress] = useState(0);
     const [totalFiles, setTotalFiles] = useState(0);
-
-    useEffect(() => {
-        const updateDimensions = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
-        updateDimensions();
-        window.addEventListener('resize', updateDimensions);
-        return () => window.removeEventListener('resize', updateDimensions);
-    }, []);
 
     useEffect(() => {
         if (toast.isVisible) {
@@ -88,57 +80,144 @@ export default function App() {
     const isScanning = view === 'scanning';
     const hasResults = view === 'results' && analysisData && Object.keys(analysisData.files || {}).length > 0;
 
+    // =========================================================================
+    // RENDER
+    // =========================================================================
+
     return (
-        <div className={`min-h-screen bg-cyber-bg cyber-grid relative ${hasResults ? 'overflow-hidden h-screen' : 'overflow-hidden'}`}>
+        <div className="flex flex-col h-screen bg-cyber-bg cyber-grid overflow-hidden">
+            {/* Fixed Header */}
             <Header />
+
+            {/* Scan Terminal Overlay */}
             <ScanTerminal logs={logs} isScanning={isScanning} progress={scanProgress} totalFiles={totalFiles} />
 
-            {hasResults && (
-                <div className="fixed inset-0 pt-20 z-0" style={{ minHeight: '100vh' }}>
-                    <DependencyGraph data={analysisData} width={dimensions.width} height={dimensions.height - 80} />
-                </div>
-            )}
+            {/* Main Content Area - Takes remaining space */}
+            <main className="flex-1 flex flex-col pt-20 relative overflow-hidden">
 
-            <main className="relative z-10 pt-24 px-6 min-h-screen flex flex-col">
+                {/* UPLOAD VIEW */}
                 {view === 'upload' && (
-                    <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col items-center justify-center -mt-16">
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+                    <motion.div
+                        key="upload"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex-1 flex flex-col items-center justify-center px-6"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-center mb-8"
+                        >
                             <h2 className="font-orbitron text-3xl md:text-4xl font-bold text-white mb-3">
                                 Analyze your <span className="text-cta-primary neon-text">Dependencies</span>
                             </h2>
-                            <p className="text-node-stdlib max-w-md mx-auto">Select your Python project to visualize imports and auto-generate requirements.txt</p>
+                            <p className="text-node-stdlib max-w-md mx-auto">
+                                Select your Python project to visualize imports and auto-generate requirements.txt
+                            </p>
                         </motion.div>
-                        <FileUploader onFilesProcessed={handleFilesProcessed} onDirectoryHandle={handleDirectoryHandle} onLog={addLog} onScanStart={handleScanStart} onScanEnd={handleScanEnd} onProgress={handleProgress} isProcessing={isScanning} />
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-12 grid grid-cols-3 gap-6 max-w-2xl mx-auto text-center">
-                            {[{ label: 'Direct Access', desc: 'Write to folder' }, { label: 'Smart Filter', desc: 'Separates stdlib' }, { label: 'PyPI Versions', desc: 'Auto-fetched' }].map((f, i) => (
-                                <div key={i} className="space-y-1"><p className="font-orbitron text-cyber-highlight text-sm">{f.label}</p><p className="text-xs text-node-stdlib">{f.desc}</p></div>
+
+                        <FileUploader
+                            onFilesProcessed={handleFilesProcessed}
+                            onDirectoryHandle={handleDirectoryHandle}
+                            onLog={addLog}
+                            onScanStart={handleScanStart}
+                            onScanEnd={handleScanEnd}
+                            onProgress={handleProgress}
+                            isProcessing={isScanning}
+                        />
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 }}
+                            className="mt-12 grid grid-cols-3 gap-6 max-w-2xl mx-auto text-center"
+                        >
+                            {[
+                                { label: 'Direct Access', desc: 'Write to folder' },
+                                { label: 'Smart Filter', desc: 'Separates stdlib' },
+                                { label: 'PyPI Versions', desc: 'Auto-fetched' }
+                            ].map((f, i) => (
+                                <div key={i} className="space-y-1">
+                                    <p className="font-orbitron text-cyber-highlight text-sm">{f.label}</p>
+                                    <p className="text-xs text-node-stdlib">{f.desc}</p>
+                                </div>
                             ))}
                         </motion.div>
                     </motion.div>
                 )}
 
+                {/* RESULTS VIEW - Graph takes full remaining space */}
                 {hasResults && (
-                    <motion.div key="results-header" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4 mb-6 relative z-20">
-                        <button onClick={handleReset} className="glass rounded-lg px-4 py-3 text-sm font-orbitron text-cta-primary hover:text-white hover:bg-cta-primary/20 border border-cta-primary/50 transition-all">
-                            ← New Scan
-                        </button>
-                        <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Files</p><p className="font-orbitron text-xl text-white">{analysisData.totalFiles}</p></div>
-                        <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Imports</p><p className="font-orbitron text-xl text-white">{analysisData.totalImports}</p></div>
-                        <div className="glass rounded-lg px-4 py-2"><p className="text-xs text-node-stdlib">Third-party</p><p className="font-orbitron text-xl text-node-import">{analysisData.thirdPartyImports.length}</p></div>
-                    </motion.div>
+                    <>
+                        {/* Graph Container - Full remaining space, receives all mouse events */}
+                        <div className="flex-1 relative">
+                            <DependencyGraph data={analysisData} />
+                        </div>
+
+                        {/* Results Header Overlay - pointer-events-none on container, auto on buttons */}
+                        <div className="absolute top-24 left-6 z-20 pointer-events-none">
+                            <motion.div
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-4 pointer-events-auto"
+                            >
+                                <button
+                                    onClick={handleReset}
+                                    className="glass rounded-lg px-4 py-3 text-sm font-orbitron text-cta-primary hover:text-white hover:bg-cta-primary/20 border border-cta-primary/50 transition-all"
+                                >
+                                    ← New Scan
+                                </button>
+                                <div className="glass rounded-lg px-4 py-2">
+                                    <p className="text-xs text-node-stdlib">Files</p>
+                                    <p className="font-orbitron text-xl text-white">{analysisData.totalFiles}</p>
+                                </div>
+                                <div className="glass rounded-lg px-4 py-2">
+                                    <p className="text-xs text-node-stdlib">Imports</p>
+                                    <p className="font-orbitron text-xl text-white">{analysisData.totalImports}</p>
+                                </div>
+                                <div className="glass rounded-lg px-4 py-2">
+                                    <p className="text-xs text-node-stdlib">Third-party</p>
+                                    <p className="font-orbitron text-xl text-node-import">{analysisData.thirdPartyImports.length}</p>
+                                </div>
+                            </motion.div>
+                        </div>
+                    </>
                 )}
 
+                {/* ERROR STATE */}
                 {view === 'results' && !hasResults && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex-1 flex flex-col items-center justify-center"
+                    >
                         <p className="text-red-400 text-xl mb-4">No results to display</p>
                         <p className="text-node-stdlib mb-6">An error occurred or no valid Python files were found.</p>
-                        <button onClick={handleReset} className="px-6 py-3 bg-cta-primary text-cta-text font-orbitron font-semibold rounded-lg">Go Back</button>
+                        <button
+                            onClick={handleReset}
+                            className="px-6 py-3 bg-cta-primary text-cta-text font-orbitron font-semibold rounded-lg"
+                        >
+                            Go Back
+                        </button>
                     </motion.div>
                 )}
             </main>
 
-            {hasResults && <ResultsPanel thirdPartyImports={analysisData.thirdPartyImports} isVisible={true} directoryHandle={directoryHandle} onToast={showToast} />}
+            {/* Results Panel (fixed right sidebar) */}
+            {hasResults && (
+                <ResultsPanel
+                    thirdPartyImports={analysisData.thirdPartyImports}
+                    isVisible={true}
+                    directoryHandle={directoryHandle}
+                    onToast={showToast}
+                />
+            )}
+
+            {/* Toast Notifications */}
             <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
+
+            {/* Decorative Background Blurs - pointer-events-none to not block graph */}
             <div className="fixed top-1/4 left-10 w-64 h-64 bg-node-file/10 rounded-full blur-3xl pointer-events-none" />
             <div className="fixed bottom-1/4 right-1/3 w-96 h-96 bg-node-import/10 rounded-full blur-3xl pointer-events-none" />
         </div>
