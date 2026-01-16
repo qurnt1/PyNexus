@@ -1,13 +1,19 @@
 import { useRef, useCallback, useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ForceGraph2D from "react-force-graph-2d";
-import { ExternalLink, Search, X, Lock, Unlock } from "lucide-react";
+import { ExternalLink, Search, X, Lock, Unlock, Focus } from "lucide-react";
+
+// =============================================================================
+// CONSTANTS & HELPERS
+// =============================================================================
 
 const NODE_COLORS = {
     file: "#2D7DFF",
     thirdParty: "#7C3AED",
     stdlib: "#7F8AB8",
 };
+
+const PYTHON_ICON_URL = "https://cdn-icons-png.flaticon.com/512/5968/5968350.png";
 
 const buildStdlibDocUrl = (importName) => {
     const root = String(importName || "").split(".")[0];
@@ -21,18 +27,40 @@ const buildPyPiUrl = (rootName) => {
     return `https://pypi.org/project/${root}/`;
 };
 
+// =============================================================================
+// COMPONENT
+// =============================================================================
+
 export default function DependencyGraph({ data, width, height }) {
     const graphRef = useRef();
     const containerRef = useRef();
+
+    // State
     const [hoveredNode, setHoveredNode] = useState(null);
     const [lockedNode, setLockedNode] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFocused, setSearchFocused] = useState(false);
     const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
 
+    // Pre-loaded Python icon for canvas rendering
+    const [pythonIcon, setPythonIcon] = useState(null);
+
     // Active node = locked takes priority over hovered
     const activeNode = lockedNode || hoveredNode;
 
+    // -------------------------------------------------------------------------
+    // Pre-load Python Icon (outside render loop to avoid lag)
+    // -------------------------------------------------------------------------
+    useEffect(() => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = PYTHON_ICON_URL;
+        img.onload = () => setPythonIcon(img);
+    }, []);
+
+    // -------------------------------------------------------------------------
+    // Container Size Observer
+    // -------------------------------------------------------------------------
     useEffect(() => {
         const updateSize = () => {
             if (containerRef.current) {
@@ -50,6 +78,9 @@ export default function DependencyGraph({ data, width, height }) {
     const graphWidth = width && width > 0 ? width : containerSize.width;
     const graphHeight = height && height > 0 ? height : containerSize.height;
 
+    // -------------------------------------------------------------------------
+    // Build Graph Data
+    // -------------------------------------------------------------------------
     const graphData = useMemo(() => {
         if (!data || !data.files) return { nodes: [], links: [] };
 
@@ -57,7 +88,7 @@ export default function DependencyGraph({ data, width, height }) {
         const links = [];
         const nodeIds = new Set();
 
-        // Files nodes
+        // File nodes
         Object.keys(data.files).forEach((fileName) => {
             const id = `file:${fileName}`;
             if (!nodeIds.has(id)) {
@@ -66,13 +97,13 @@ export default function DependencyGraph({ data, width, height }) {
                     name: fileName.split("/").pop(),
                     fullName: fileName,
                     type: "file",
-                    val: 10,
+                    val: 12,
                 });
                 nodeIds.add(id);
             }
         });
 
-        // Imports nodes + links
+        // Import nodes + links
         Object.entries(data.files).forEach(([fileName, imports]) => {
             const fileId = `file:${fileName}`;
             if (!Array.isArray(imports)) return;
@@ -105,7 +136,7 @@ export default function DependencyGraph({ data, width, height }) {
                         pythonUrl,
                         pypiUrl,
                         docUrl: isStdlib ? pythonUrl : pypiUrl,
-                        val: isStdlib ? 6 : 8,
+                        val: isStdlib ? 8 : 10,
                     });
                     nodeIds.add(impId);
                 }
@@ -117,7 +148,9 @@ export default function DependencyGraph({ data, width, height }) {
         return { nodes, links };
     }, [data]);
 
-    // Compute highlighted nodes (connected to active node)
+    // -------------------------------------------------------------------------
+    // Highlighting Logic
+    // -------------------------------------------------------------------------
     const highlightNodes = useMemo(() => {
         if (!activeNode) return new Set();
 
@@ -131,7 +164,6 @@ export default function DependencyGraph({ data, width, height }) {
         return neighbors;
     }, [activeNode, graphData.links]);
 
-    // Compute highlighted links
     const highlightLinks = useMemo(() => {
         if (!activeNode) return new Set();
 
@@ -146,7 +178,9 @@ export default function DependencyGraph({ data, width, height }) {
         return linkSet;
     }, [activeNode, graphData.links]);
 
-    // Search results
+    // -------------------------------------------------------------------------
+    // Search Results
+    // -------------------------------------------------------------------------
     const searchResults = useMemo(() => {
         if (!searchQuery.trim()) return [];
         const query = searchQuery.toLowerCase();
@@ -155,69 +189,110 @@ export default function DependencyGraph({ data, width, height }) {
             .slice(0, 8);
     }, [searchQuery, graphData.nodes]);
 
-    // Custom node painting with labels and focus mode
+    // -------------------------------------------------------------------------
+    // Custom Canvas Node Painting
+    // -------------------------------------------------------------------------
     const paintNode = useCallback(
         (node, ctx, globalScale) => {
             if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
 
-            const size = node.val || 8;
+            const size = node.val || 10;
             const color = NODE_COLORS[node.type] || NODE_COLORS.thirdParty;
             const label = globalScale > 2.2 ? (node.fullName ?? node.name) : node.name;
             const fontSize = Math.max(12 / globalScale, 4);
 
             // Focus mode: dim non-connected nodes
             const isFocused = !activeNode || highlightNodes.has(node.id);
-            const opacity = isFocused ? 1 : 0.12;
+            const opacity = isFocused ? 1 : 0.15;
 
             ctx.globalAlpha = opacity;
 
-            // Outer glow
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, size + 4, 0, 2 * Math.PI);
-            ctx.fillStyle = color + "25";
-            ctx.fill();
+            // -----------------------------------------------------------------
+            // Draw Node Based on Type
+            // -----------------------------------------------------------------
+            if (node.type === "file" && pythonIcon) {
+                // Python icon for file nodes
+                const iconSize = size * 2.2;
+                ctx.drawImage(
+                    pythonIcon,
+                    node.x - iconSize / 2,
+                    node.y - iconSize / 2,
+                    iconSize,
+                    iconSize
+                );
 
-            // Main circle
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
-            ctx.fillStyle = color;
-            ctx.fill();
-
-            // Border (brighter if this is the active node)
-            if (activeNode && node.id === activeNode.id) {
-                ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 3;
+                // Selection ring
+                if (activeNode && node.id === activeNode.id) {
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, iconSize / 2 + 4, 0, 2 * Math.PI);
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+                }
             } else {
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1.5;
-            }
-            ctx.stroke();
+                // Circles with glow effect for stdlib/thirdParty
 
-            // Label below the node
+                // Outer glow (shadow effect)
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, size + 6, 0, 2 * Math.PI);
+                ctx.fillStyle = color + "30";
+                ctx.fill();
+
+                // Middle glow
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, size + 3, 0, 2 * Math.PI);
+                ctx.fillStyle = color + "50";
+                ctx.fill();
+
+                // Main circle
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+
+                // Border (brighter if this is the active node)
+                if (activeNode && node.id === activeNode.id) {
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 3;
+                } else {
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1.5;
+                }
+                ctx.stroke();
+            }
+
+            // -----------------------------------------------------------------
+            // Draw Label Below Node
+            // -----------------------------------------------------------------
             ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", system-ui, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
 
             const textWidth = ctx.measureText(String(label || "")).width;
             const bgPadding = 3;
+            const labelY = node.y + size + 6;
 
-            ctx.fillStyle = "rgba(6, 6, 23, 0.85)";
+            // Label background
+            ctx.fillStyle = "rgba(6, 6, 23, 0.9)";
             ctx.fillRect(
                 node.x - textWidth / 2 - bgPadding,
-                node.y + size + 4,
+                labelY,
                 textWidth + bgPadding * 2,
                 fontSize + bgPadding * 2
             );
 
-            ctx.fillStyle = isFocused ? "#e2e8f0" : "#4a4a6a";
-            ctx.fillText(String(label || ""), node.x, node.y + size + 6);
+            // Label text
+            ctx.fillStyle = isFocused ? "#EAF0FF" : "#4a4a6a";
+            ctx.fillText(String(label || ""), node.x, labelY + 2);
 
             ctx.globalAlpha = 1;
         },
-        [activeNode, highlightNodes]
+        [activeNode, highlightNodes, pythonIcon]
     );
 
-    // Custom link color for focus mode
+    // -------------------------------------------------------------------------
+    // Link Color for Focus Mode
+    // -------------------------------------------------------------------------
     const getLinkColor = useCallback(
         (link) => {
             if (!activeNode) return "#24265F";
@@ -229,42 +304,48 @@ export default function DependencyGraph({ data, width, height }) {
         [activeNode, highlightLinks]
     );
 
-    // Handle node hover
+    // -------------------------------------------------------------------------
+    // Event Handlers
+    // -------------------------------------------------------------------------
     const handleNodeHover = useCallback((node) => {
         setHoveredNode(node || null);
     }, []);
 
-    // Handle node click (lock/unlock)
     const handleNodeClick = useCallback(
         (node) => {
             if (lockedNode && lockedNode.id === node.id) {
-                // Unlock if clicking same node
                 setLockedNode(null);
             } else {
-                // Lock to this node
                 setLockedNode(node);
             }
         },
         [lockedNode]
     );
 
-    // Search: center and zoom on node
     const handleSearchSelect = useCallback((node) => {
         setSearchQuery("");
         setSearchFocused(false);
         setLockedNode(node);
 
         if (graphRef.current) {
-            graphRef.current.centerAt(node.x, node.y, 1000);
-            graphRef.current.zoom(4, 1500);
+            graphRef.current.centerAt(node.x, node.y, 800);
+            graphRef.current.zoom(4, 1000);
         }
     }, []);
 
-    // Click outside to unlock
     const handleBackgroundClick = useCallback(() => {
         setLockedNode(null);
     }, []);
 
+    const handleCenterView = useCallback(() => {
+        if (graphRef.current) {
+            graphRef.current.zoomToFit(400, 50);
+        }
+    }, []);
+
+    // -------------------------------------------------------------------------
+    // Empty State
+    // -------------------------------------------------------------------------
     if (graphData.nodes.length === 0) {
         return (
             <div className="w-full h-full min-h-[400px] flex items-center justify-center">
@@ -273,8 +354,12 @@ export default function DependencyGraph({ data, width, height }) {
         );
     }
 
+    // -------------------------------------------------------------------------
+    // Render
+    // -------------------------------------------------------------------------
     return (
-        <div ref={containerRef} className="relative w-full h-full flex-1">
+        <div ref={containerRef} className="relative w-full h-full flex-1" style={{ minHeight: 400 }}>
+            {/* Force Graph */}
             <ForceGraph2D
                 ref={graphRef}
                 graphData={graphData}
@@ -300,13 +385,15 @@ export default function DependencyGraph({ data, width, height }) {
                 enableZoomInteraction={true}
                 enablePanInteraction={true}
                 enableNodeDrag={true}
+                minZoom={0.5}
+                maxZoom={12}
             />
 
             {/* Search Bar - Top Left */}
             <div className="absolute top-4 left-4 z-20">
                 <div className="relative">
-                    <div className="flex items-center gap-2 bg-[#0a0a1a]/90 backdrop-blur-md rounded-lg border border-gray-700 px-3 py-2 min-w-[240px]">
-                        <Search className="w-4 h-4 text-gray-500" />
+                    <div className="flex items-center gap-2 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 min-w-[260px] shadow-lg">
+                        <Search className="w-4 h-4 text-node-stdlib" />
                         <input
                             type="text"
                             placeholder="Search nodes..."
@@ -314,10 +401,10 @@ export default function DependencyGraph({ data, width, height }) {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onFocus={() => setSearchFocused(true)}
                             onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-                            className="bg-transparent text-white text-sm placeholder-gray-500 outline-none flex-1 font-mono"
+                            className="bg-transparent text-[#EAF0FF] text-sm placeholder-node-stdlib outline-none flex-1 font-mono"
                         />
                         {searchQuery && (
-                            <button onClick={() => setSearchQuery("")} className="text-gray-500 hover:text-white">
+                            <button onClick={() => setSearchQuery("")} className="text-node-stdlib hover:text-white transition-colors">
                                 <X className="w-4 h-4" />
                             </button>
                         )}
@@ -330,21 +417,24 @@ export default function DependencyGraph({ data, width, height }) {
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="absolute top-full left-0 right-0 mt-2 bg-[#0a0a1a]/95 backdrop-blur-md rounded-lg border border-gray-700 overflow-hidden"
+                                className="absolute top-full left-0 right-0 mt-2 bg-cyber-bg/98 backdrop-blur-xl rounded-xl border border-cyber-border overflow-hidden shadow-xl"
                             >
                                 {searchResults.map((node) => (
                                     <button
                                         key={node.id}
                                         onMouseDown={() => handleSearchSelect(node)}
-                                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition-colors text-left"
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
                                     >
                                         <div
                                             className="w-3 h-3 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: NODE_COLORS[node.type] }}
+                                            style={{
+                                                backgroundColor: NODE_COLORS[node.type],
+                                                boxShadow: `0 0 8px ${NODE_COLORS[node.type]}`,
+                                            }}
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-white text-sm truncate">{node.name}</p>
-                                            <p className="text-gray-500 text-xs truncate">{node.fullName}</p>
+                                            <p className="text-[#EAF0FF] text-sm truncate">{node.name}</p>
+                                            <p className="text-node-stdlib text-xs truncate">{node.fullName}</p>
                                         </div>
                                     </button>
                                 ))}
@@ -354,27 +444,38 @@ export default function DependencyGraph({ data, width, height }) {
                 </div>
             </div>
 
-            {/* Inspector Panel - Bottom Right */}
-            <motion.div
-                layout
-                className="absolute bottom-4 right-4 z-20 w-72"
+            {/* Center View Button - Top Right (before Inspector) */}
+            <button
+                onClick={handleCenterView}
+                className="absolute top-4 right-[310px] z-20 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border p-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group"
+                title="Center View"
             >
+                <Focus className="w-5 h-5 text-node-stdlib group-hover:text-node-file transition-colors" />
+            </button>
+
+            {/* Inspector Panel - Top Right */}
+            <motion.div layout className="absolute top-4 right-4 z-20 w-72">
                 <div
-                    className="bg-[#0a0a1a]/90 backdrop-blur-xl rounded-xl border-2 overflow-hidden shadow-2xl"
+                    className="bg-cyber-bg/95 backdrop-blur-xl rounded-xl border-2 overflow-hidden shadow-2xl"
                     style={{
-                        borderColor: activeNode ? NODE_COLORS[activeNode.type] : "#333",
+                        borderColor: activeNode ? NODE_COLORS[activeNode.type] : "#24265F",
                         boxShadow: activeNode ? `0 0 30px ${NODE_COLORS[activeNode.type]}30` : "none",
                     }}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700/50">
-                        <span className="text-xs text-gray-400 font-orbitron uppercase tracking-wider">Inspector</span>
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-cyber-border/50">
+                        <span className="text-xs text-node-stdlib font-orbitron uppercase tracking-wider">
+                            Inspector
+                        </span>
                         {lockedNode ? (
-                            <button onClick={() => setLockedNode(null)} className="text-cyan-400 hover:text-cyan-300">
+                            <button
+                                onClick={() => setLockedNode(null)}
+                                className="text-cyber-highlight hover:text-white transition-colors"
+                            >
                                 <Lock className="w-4 h-4" />
                             </button>
                         ) : (
-                            <Unlock className="w-4 h-4 text-gray-600" />
+                            <Unlock className="w-4 h-4 text-cyber-border" />
                         )}
                     </div>
 
@@ -398,7 +499,7 @@ export default function DependencyGraph({ data, width, height }) {
                                             boxShadow: `0 0 12px ${NODE_COLORS[activeNode.type]}`,
                                         }}
                                     />
-                                    <span className="text-white font-orbitron font-semibold text-lg truncate">
+                                    <span className="text-[#EAF0FF] font-orbitron font-semibold text-lg truncate">
                                         {activeNode.name}
                                     </span>
                                 </div>
@@ -406,17 +507,17 @@ export default function DependencyGraph({ data, width, height }) {
                                 {/* Type Badge */}
                                 <div>
                                     {activeNode.type === "thirdParty" && (
-                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-violet-500/20 text-violet-400 text-xs rounded-lg border border-violet-500/30">
+                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-node-import/20 text-node-import text-xs rounded-lg border border-node-import/30">
                                             📦 Third-Party (PyPI)
                                         </span>
                                     )}
                                     {activeNode.type === "stdlib" && (
-                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-500/20 text-gray-400 text-xs rounded-lg border border-gray-500/30">
+                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-node-stdlib/20 text-node-stdlib text-xs rounded-lg border border-node-stdlib/30">
                                             🐍 Standard Library
                                         </span>
                                     )}
                                     {activeNode.type === "file" && (
-                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-400 text-xs rounded-lg border border-blue-500/30">
+                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-node-file/20 text-node-file text-xs rounded-lg border border-node-file/30">
                                             📄 Source File
                                         </span>
                                     )}
@@ -424,27 +525,32 @@ export default function DependencyGraph({ data, width, height }) {
 
                                 {/* Details */}
                                 {activeNode.type === "file" && activeNode.fullName !== activeNode.name && (
-                                    <p className="text-xs text-gray-400 font-mono bg-black/30 px-2 py-1 rounded truncate" title={activeNode.fullName}>
+                                    <p
+                                        className="text-xs text-node-stdlib font-mono bg-black/30 px-2 py-1.5 rounded-lg truncate"
+                                        title={activeNode.fullName}
+                                    >
                                         {activeNode.fullName}
                                     </p>
                                 )}
 
                                 {activeNode.type !== "file" && (
-                                    <div className="space-y-1 text-xs">
+                                    <div className="space-y-1.5 text-xs">
                                         <div className="flex justify-between">
-                                            <span className="text-gray-500">Import:</span>
-                                            <span className="text-gray-300 font-mono">{activeNode.importName || activeNode.fullName}</span>
+                                            <span className="text-node-stdlib">Import:</span>
+                                            <span className="text-[#EAF0FF] font-mono">
+                                                {activeNode.importName || activeNode.fullName}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-500">Native:</span>
+                                            <span className="text-node-stdlib">Native:</span>
                                             <span className={activeNode.isNative ? "text-emerald-400" : "text-rose-400"}>
                                                 {activeNode.isNative ? "Yes" : "No"}
                                             </span>
                                         </div>
                                         {!activeNode.isNative && (
                                             <div className="flex justify-between">
-                                                <span className="text-gray-500">Package:</span>
-                                                <span className="text-gray-300 font-mono">{activeNode.rootName}</span>
+                                                <span className="text-node-stdlib">Package:</span>
+                                                <span className="text-[#EAF0FF] font-mono">{activeNode.rootName}</span>
                                             </div>
                                         )}
                                     </div>
@@ -455,16 +561,16 @@ export default function DependencyGraph({ data, width, height }) {
                                     <motion.div
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: "auto" }}
-                                        className="pt-2 space-y-2 border-t border-gray-700/50"
+                                        className="pt-3 space-y-2 border-t border-cyber-border/50"
                                     >
                                         {activeNode.pythonUrl && (
                                             <a
                                                 href={activeNode.pythonUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center gap-2 px-3 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-lg text-xs transition-colors border border-cyan-500/30"
+                                                className="flex items-center gap-2 px-3 py-2.5 bg-cyber-highlight/10 hover:bg-cyber-highlight/20 text-cyber-highlight rounded-lg text-xs transition-colors border border-cyber-highlight/30"
                                             >
-                                                <ExternalLink className="w-3 h-3" />
+                                                <ExternalLink className="w-3.5 h-3.5" />
                                                 <span className="font-medium">Python Docs</span>
                                             </a>
                                         )}
@@ -473,9 +579,9 @@ export default function DependencyGraph({ data, width, height }) {
                                                 href={activeNode.pypiUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center gap-2 px-3 py-2 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg text-xs transition-colors border border-violet-500/30"
+                                                className="flex items-center gap-2 px-3 py-2.5 bg-node-import/10 hover:bg-node-import/20 text-node-import rounded-lg text-xs transition-colors border border-node-import/30"
                                             >
-                                                <ExternalLink className="w-3 h-3" />
+                                                <ExternalLink className="w-3.5 h-3.5" />
                                                 <span className="font-medium">View on PyPI</span>
                                             </a>
                                         )}
@@ -483,7 +589,7 @@ export default function DependencyGraph({ data, width, height }) {
                                 )}
 
                                 {!lockedNode && (
-                                    <p className="text-[10px] text-gray-500 text-center pt-1">
+                                    <p className="text-[10px] text-node-stdlib text-center pt-1">
                                         Click node to lock & show links
                                     </p>
                                 )}
@@ -496,8 +602,8 @@ export default function DependencyGraph({ data, width, height }) {
                                 exit={{ opacity: 0 }}
                                 className="p-6 text-center"
                             >
-                                <p className="text-gray-500 text-sm">Hover over a node</p>
-                                <p className="text-gray-600 text-xs mt-1">to inspect details</p>
+                                <p className="text-node-stdlib text-sm">Hover over a node</p>
+                                <p className="text-cyber-border text-xs mt-1">to see details</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -505,24 +611,44 @@ export default function DependencyGraph({ data, width, height }) {
             </motion.div>
 
             {/* Legend - Bottom Left */}
-            <div className="absolute bottom-4 left-4 bg-[#0a0a1a]/90 backdrop-blur rounded-lg p-3 text-xs space-y-2 z-10 border border-gray-700">
+            <div className="absolute bottom-4 left-4 bg-cyber-bg/95 backdrop-blur-xl rounded-xl p-3 text-xs space-y-2 z-10 border border-cyber-border shadow-lg">
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.file }} />
-                    <span className="text-gray-400">Python Files</span>
+                    <div
+                        className="w-3 h-3 rounded-full"
+                        style={{
+                            backgroundColor: NODE_COLORS.file,
+                            boxShadow: `0 0 6px ${NODE_COLORS.file}`,
+                        }}
+                    />
+                    <span className="text-node-stdlib">Python Files</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.thirdParty }} />
-                    <span className="text-gray-400">Third-Party</span>
+                    <div
+                        className="w-3 h-3 rounded-full"
+                        style={{
+                            backgroundColor: NODE_COLORS.thirdParty,
+                            boxShadow: `0 0 6px ${NODE_COLORS.thirdParty}`,
+                        }}
+                    />
+                    <span className="text-node-stdlib">Third-Party</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.stdlib }} />
-                    <span className="text-gray-400">Stdlib</span>
+                    <div
+                        className="w-3 h-3 rounded-full"
+                        style={{
+                            backgroundColor: NODE_COLORS.stdlib,
+                            boxShadow: `0 0 6px ${NODE_COLORS.stdlib}`,
+                        }}
+                    />
+                    <span className="text-node-stdlib">Stdlib</span>
                 </div>
             </div>
 
-            {/* Controls hint */}
-            <div className="absolute top-4 right-4 bg-[#0a0a1a]/90 backdrop-blur rounded-lg px-3 py-2 text-[10px] text-gray-500 z-10 border border-gray-700">
-                Scroll to zoom • Drag to pan • Click to lock
+            {/* Controls Hint - Bottom Right */}
+            <div className="absolute bottom-4 right-4 bg-cyber-bg/95 backdrop-blur-xl rounded-xl px-4 py-2.5 text-[11px] text-node-stdlib z-10 border border-cyber-border shadow-lg">
+                <span className="text-cyber-highlight">Scroll</span> to zoom •{" "}
+                <span className="text-cyber-highlight">Drag</span> to pan •{" "}
+                <span className="text-cyber-highlight">Click</span> to lock
             </div>
         </div>
     );
