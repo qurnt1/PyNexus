@@ -400,8 +400,8 @@ export default function DependencyGraph({ data }) {
                 maxZoom={12}
             />
 
-            {/* Search Bar - Top Left (with pointer-events-auto) */}
-            <div className="absolute top-4 left-4 z-20 pointer-events-auto">
+            {/* Search Bar - Below header stats (with pointer-events-auto) */}
+            <div className="absolute top-28 left-6 z-20 pointer-events-auto">
                 <div className="relative">
                     <div className="flex items-center gap-2 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 min-w-[260px] shadow-lg">
                         <Search className="w-4 h-4 text-node-stdlib" />
@@ -455,17 +455,17 @@ export default function DependencyGraph({ data }) {
                 </div>
             </div>
 
-            {/* Center View Button - Top Right (before Inspector) */}
+            {/* Center View Button - Next to Inspector */}
             <button
                 onClick={handleCenterView}
-                className="absolute top-4 right-[310px] z-20 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border p-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group"
+                className="absolute top-4 right-[620px] z-50 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border p-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group"
                 title="Center View"
             >
                 <Focus className="w-5 h-5 text-node-stdlib group-hover:text-node-file transition-colors" />
             </button>
 
-            {/* Inspector Panel - Top Right */}
-            <motion.div layout className="absolute top-4 right-4 z-20 w-72 pointer-events-auto">
+            {/* Inspector Panel - Top Right (z-50 to float above sidebar) */}
+            <motion.div layout className="absolute top-4 right-[340px] z-50 w-72 pointer-events-auto">
                 <div
                     className="bg-cyber-bg/95 backdrop-blur-xl rounded-xl border-2 overflow-hidden shadow-2xl"
                     style={{
@@ -655,12 +655,6 @@ export default function DependencyGraph({ data }) {
                 </div>
             </div>
 
-            {/* Controls Hint - Bottom Right */}
-            <div className="absolute bottom-4 right-4 bg-cyber-bg/95 backdrop-blur-xl rounded-xl px-4 py-2.5 text-[11px] text-node-stdlib z-10 border border-cyber-border shadow-lg pointer-events-auto">
-                <span className="text-cyber-highlight">Scroll</span> to zoom •{" "}
-                <span className="text-cyber-highlight">Drag</span> to pan •{" "}
-                <span className="text-cyber-highlight">Click</span> to lock
-            </div>
         </div>
     );
 }

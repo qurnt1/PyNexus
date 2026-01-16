@@ -36,29 +36,47 @@ export default function ResultsPanel({ thirdPartyImports, isVisible, directoryHa
         URL.revokeObjectURL(url);
     };
 
-    const handleWriteToFolder = useCallback(async () => {
+    // Handler A: Download via Blob (works in all browsers)
+    const handleDownloadFile = useCallback(async () => {
         setIsGenerating(true);
         try {
             const versions = await getPackageVersions(thirdPartyImports);
             const content = generateRequirementsTxt(thirdPartyImports, versions);
-            if (directoryHandle && isFileSystemAccessSupported) {
-                try {
-                    const fileHandle = await directoryHandle.getFileHandle('requirements.txt', { create: true });
-                    const writable = await fileHandle.createWritable();
-                    await writable.write(content);
-                    await writable.close();
-                    onToast(`✅ requirements.txt saved to "${directoryHandle.name}"`, 'success');
-                } catch {
-                    downloadFile(content);
-                    onToast('Downloaded (direct write unavailable)', 'success');
-                }
-            } else {
-                downloadFile(content);
-                onToast('requirements.txt downloaded', 'success');
-            }
+            downloadFile(content);
+            onToast('requirements.txt downloaded', 'success');
         } catch (error) {
             console.error('Failed to generate:', error);
             onToast('Error generating file', 'error');
+        } finally {
+            setIsGenerating(false);
+        }
+    }, [thirdPartyImports, onToast]);
+
+    // Handler B: Save directly to disk via File System Access API (Chrome/Edge)
+    const handleSaveToDisk = useCallback(async () => {
+        if (!directoryHandle || !isFileSystemAccessSupported) return;
+
+        setIsGenerating(true);
+        try {
+            const versions = await getPackageVersions(thirdPartyImports);
+            const content = generateRequirementsTxt(thirdPartyImports, versions);
+
+            const fileHandle = await directoryHandle.getFileHandle('requirements.txt', { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+            onToast(`✅ requirements.txt saved to "${directoryHandle.name}"`, 'success');
+        } catch (error) {
+            console.error('Failed to save:', error);
+            // Fallback to download if direct write fails
+            try {
+                const versions = await getPackageVersions(thirdPartyImports);
+                const content = generateRequirementsTxt(thirdPartyImports, versions);
+                downloadFile(content);
+                onToast('Downloaded (direct write failed)', 'success');
+            } catch {
+                onToast('Error saving file', 'error');
+            }
         } finally {
             setIsGenerating(false);
         }
@@ -119,20 +137,41 @@ export default function ResultsPanel({ thirdPartyImports, isVisible, directoryHa
                     </div>
                 </div>
 
-                <button onClick={handleWriteToFolder} disabled={isGenerating} className="w-full flex flex-col items-center justify-center gap-1 py-3 px-4 bg-cta-primary text-cta-text font-orbitron font-semibold rounded-lg hover:shadow-glow-green transition-all disabled:opacity-50">
-                    <div className="flex items-center gap-2">
+                {/* Dual Save Buttons */}
+                <div className="space-y-2">
+                    {/* Button A: Download .txt (Secondary - Blob download) */}
+                    <button
+                        onClick={handleDownloadFile}
+                        disabled={isGenerating}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-cyber-panel/80 text-node-file font-orbitron text-sm rounded-lg border border-node-file/50 hover:bg-node-file/20 hover:border-node-file transition-all disabled:opacity-50"
+                    >
                         {isGenerating ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /><span>Fetching versions...</span></>
-                        ) : directoryHandle && isFileSystemAccessSupported ? (
-                            <><Save className="w-4 h-4" /><span>Save requirements.txt</span></>
+                            <><Loader2 className="w-4 h-4 animate-spin" /><span>Generating...</span></>
                         ) : (
-                            <><Download className="w-4 h-4" /><span>Download requirements.txt</span></>
+                            <><Download className="w-4 h-4" /><span>Download .txt</span></>
                         )}
-                    </div>
-                    <span className="text-[10px] font-normal opacity-80">
-                        {directoryHandle && isFileSystemAccessSupported ? `Saves directly to "${directoryHandle.name}"` : 'Versions fetched from PyPI'}
-                    </span>
-                </button>
+                    </button>
+
+                    {/* Button B: Save to Disk (Primary - File System Access API) */}
+                    {directoryHandle && isFileSystemAccessSupported && (
+                        <button
+                            onClick={handleSaveToDisk}
+                            disabled={isGenerating}
+                            className="w-full flex flex-col items-center justify-center gap-1 py-3 px-4 bg-cta-primary text-cta-text font-orbitron font-semibold rounded-lg hover:shadow-glow-green transition-all disabled:opacity-50"
+                        >
+                            <div className="flex items-center gap-2">
+                                {isGenerating ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /><span>Saving...</span></>
+                                ) : (
+                                    <><Save className="w-4 h-4" /><span>Save to Disk</span></>
+                                )}
+                            </div>
+                            <span className="text-[10px] font-normal opacity-80">
+                                Writes directly to "{directoryHandle.name}"
+                            </span>
+                        </button>
+                    )}
+                </div>
             </div>
         </motion.div>
     );
