@@ -86,6 +86,20 @@ export default function DependencyGraph({ data }) {
     }, []);
 
     // -------------------------------------------------------------------------
+    // Configure Physics Forces (spread nodes out)
+    // -------------------------------------------------------------------------
+    useEffect(() => {
+        if (graphRef.current) {
+            // Strong repulsion to spread nodes outward
+            graphRef.current.d3Force("charge").strength(-500);
+            // Increase link distance
+            graphRef.current.d3Force("link").distance(80);
+            // Center force to keep graph centered
+            graphRef.current.d3Force("center").strength(0.05);
+        }
+    }, []);
+
+    // -------------------------------------------------------------------------
     // Build Graph Data
     // -------------------------------------------------------------------------
     const graphData = useMemo(() => {
@@ -396,8 +410,8 @@ export default function DependencyGraph({ data }) {
                     node.fy = node.y;
                 }}
                 cooldownTicks={80}
-                d3AlphaDecay={0.08}
-                d3VelocityDecay={0.4}
+                d3AlphaDecay={0.05}
+                d3VelocityDecay={0.3}
                 enableZoomInteraction={true}
                 enablePanInteraction={true}
                 enableNodeDrag={true}
@@ -405,10 +419,13 @@ export default function DependencyGraph({ data }) {
                 maxZoom={12}
             />
 
-            {/* Search Bar - Below header stats (with pointer-events-auto) */}
-            <div className="absolute top-28 left-6 z-20 pointer-events-auto">
+            {/* ================================================================
+                TOP-RIGHT CONTROLS: Search + Reset Button
+            ================================================================ */}
+            <div className="absolute top-4 right-[340px] z-40 pointer-events-auto flex items-center gap-3">
+                {/* Search Bar */}
                 <div className="relative">
-                    <div className="flex items-center gap-2 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 min-w-[260px] shadow-lg">
+                    <div className="flex items-center gap-2 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 min-w-[220px] shadow-lg">
                         <Search className="w-4 h-4 text-node-stdlib" />
                         <input
                             type="text"
@@ -433,7 +450,7 @@ export default function DependencyGraph({ data }) {
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="absolute top-full left-0 right-0 mt-2 bg-cyber-bg/98 backdrop-blur-xl rounded-xl border border-cyber-border overflow-hidden shadow-xl"
+                                className="absolute top-full left-0 right-0 mt-2 bg-cyber-bg/98 backdrop-blur-xl rounded-xl border border-cyber-border overflow-hidden shadow-xl z-50"
                             >
                                 {searchResults.map((node) => (
                                     <button
@@ -458,20 +475,22 @@ export default function DependencyGraph({ data }) {
                         )}
                     </AnimatePresence>
                 </div>
+
+                {/* Reset View Button */}
+                <button
+                    onClick={handleCenterView}
+                    className="bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group flex items-center gap-2"
+                    title="Reset View"
+                >
+                    <Focus className="w-4 h-4 text-node-stdlib group-hover:text-node-file transition-colors" />
+                    <span className="text-xs text-node-stdlib group-hover:text-node-file font-orbitron">Reset</span>
+                </button>
             </div>
 
-            {/* Center View Button - Top Right (left of sidebar) */}
-            <button
-                onClick={handleCenterView}
-                className="absolute top-4 right-[340px] z-40 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group flex items-center gap-2"
-                title="Reset View"
-            >
-                <Focus className="w-4 h-4 text-node-stdlib group-hover:text-node-file transition-colors" />
-                <span className="text-xs text-node-stdlib group-hover:text-node-file font-orbitron">Reset</span>
-            </button>
-
-            {/* Inspector Panel - Top Right (z-50 to float above sidebar) */}
-            <motion.div layout className="absolute top-4 right-[340px] z-50 w-72 pointer-events-auto">
+            {/* ================================================================
+                BOTTOM-LEFT: Inspector Panel
+            ================================================================ */}
+            <motion.div layout className="absolute bottom-4 left-4 z-50 w-72 pointer-events-auto">
                 <div
                     className="bg-cyber-bg/95 backdrop-blur-xl rounded-xl border-2 overflow-hidden shadow-2xl"
                     style={{
@@ -626,8 +645,6 @@ export default function DependencyGraph({ data }) {
                     </AnimatePresence>
                 </div>
             </motion.div>
-
-
         </div>
     );
 }
