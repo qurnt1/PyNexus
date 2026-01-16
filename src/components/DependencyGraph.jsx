@@ -420,12 +420,11 @@ export default function DependencyGraph({ data }) {
             />
 
             {/* ================================================================
-                TOP-RIGHT CONTROLS: Search + Reset Button
+                TOP-LEFT: Search Bar (below the header stats row)
             ================================================================ */}
-            <div className="absolute top-4 right-[340px] z-40 pointer-events-auto flex items-center gap-3">
-                {/* Search Bar */}
+            <div className="absolute top-44 left-6 z-40 pointer-events-auto">
                 <div className="relative">
-                    <div className="flex items-center gap-2 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 min-w-[220px] shadow-lg">
+                    <div className="flex items-center gap-2 bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 min-w-[260px] shadow-lg">
                         <Search className="w-4 h-4 text-node-stdlib" />
                         <input
                             type="text"
@@ -475,17 +474,19 @@ export default function DependencyGraph({ data }) {
                         )}
                     </AnimatePresence>
                 </div>
-
-                {/* Reset View Button */}
-                <button
-                    onClick={handleCenterView}
-                    className="bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group flex items-center gap-2"
-                    title="Reset View"
-                >
-                    <Focus className="w-4 h-4 text-node-stdlib group-hover:text-node-file transition-colors" />
-                    <span className="text-xs text-node-stdlib group-hover:text-node-file font-orbitron">Reset</span>
-                </button>
             </div>
+
+            {/* ================================================================
+                TOP-RIGHT: Reset Button (with safe margin from sidebar)
+            ================================================================ */}
+            <button
+                onClick={handleCenterView}
+                className="absolute top-24 right-[350px] z-40 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-4 py-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group flex items-center gap-2"
+                title="Reset View"
+            >
+                <Focus className="w-4 h-4 text-node-stdlib group-hover:text-node-file transition-colors" />
+                <span className="text-xs text-node-stdlib group-hover:text-node-file font-orbitron">Reset View</span>
+            </button>
 
             {/* ================================================================
                 BOTTOM-LEFT: Inspector Panel
