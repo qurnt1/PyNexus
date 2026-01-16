@@ -390,9 +390,14 @@ export default function DependencyGraph({ data }) {
                 onNodeHover={handleNodeHover}
                 onNodeClick={handleNodeClick}
                 onBackgroundClick={handleBackgroundClick}
-                cooldownTicks={100}
-                d3AlphaDecay={0.02}
-                d3VelocityDecay={0.3}
+                onNodeDragEnd={(node) => {
+                    // Pin node to prevent jelly effect
+                    node.fx = node.x;
+                    node.fy = node.y;
+                }}
+                cooldownTicks={80}
+                d3AlphaDecay={0.08}
+                d3VelocityDecay={0.4}
                 enableZoomInteraction={true}
                 enablePanInteraction={true}
                 enableNodeDrag={true}
@@ -455,13 +460,14 @@ export default function DependencyGraph({ data }) {
                 </div>
             </div>
 
-            {/* Center View Button - Next to Inspector */}
+            {/* Center View Button - Top Right (left of sidebar) */}
             <button
                 onClick={handleCenterView}
-                className="absolute top-4 right-[620px] z-50 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border p-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group"
-                title="Center View"
+                className="absolute top-4 right-[340px] z-40 pointer-events-auto bg-cyber-bg/95 backdrop-blur-xl rounded-xl border border-cyber-border px-3 py-2.5 hover:bg-cyber-panel hover:border-node-file transition-all shadow-lg group flex items-center gap-2"
+                title="Reset View"
             >
-                <Focus className="w-5 h-5 text-node-stdlib group-hover:text-node-file transition-colors" />
+                <Focus className="w-4 h-4 text-node-stdlib group-hover:text-node-file transition-colors" />
+                <span className="text-xs text-node-stdlib group-hover:text-node-file font-orbitron">Reset</span>
             </button>
 
             {/* Inspector Panel - Top Right (z-50 to float above sidebar) */}
@@ -621,39 +627,6 @@ export default function DependencyGraph({ data }) {
                 </div>
             </motion.div>
 
-            {/* Legend - Bottom Left */}
-            <div className="absolute bottom-4 left-4 bg-cyber-bg/95 backdrop-blur-xl rounded-xl p-3 text-xs space-y-2 z-10 border border-cyber-border shadow-lg pointer-events-auto">
-                <div className="flex items-center gap-2">
-                    <div
-                        className="w-3 h-3 rounded-full"
-                        style={{
-                            backgroundColor: NODE_COLORS.file,
-                            boxShadow: `0 0 6px ${NODE_COLORS.file}`,
-                        }}
-                    />
-                    <span className="text-node-stdlib">Python Files</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div
-                        className="w-3 h-3 rounded-full"
-                        style={{
-                            backgroundColor: NODE_COLORS.thirdParty,
-                            boxShadow: `0 0 6px ${NODE_COLORS.thirdParty}`,
-                        }}
-                    />
-                    <span className="text-node-stdlib">Third-Party</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div
-                        className="w-3 h-3 rounded-full"
-                        style={{
-                            backgroundColor: NODE_COLORS.stdlib,
-                            boxShadow: `0 0 6px ${NODE_COLORS.stdlib}`,
-                        }}
-                    />
-                    <span className="text-node-stdlib">Stdlib</span>
-                </div>
-            </div>
 
         </div>
     );
