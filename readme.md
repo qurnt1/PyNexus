@@ -19,11 +19,11 @@ Featuring a stunning **Cyberpunk / Dark Mode** design, PyNexus transforms the mu
 
 ---
 
-## Testez la version en ligne de l'application !
+## Test the online app !
 
-<p align="center">
-  <a href="https://qurnt1.github.io/PyNexus/">Cliquez ici</a>
-</p>
+
+<a href="https://qurnt1.github.io/PyNexus/">Cliquez ici</a>
+
 
 ---
 ## ✨ Features
