@@ -11,14 +11,6 @@
 
 ---
 
-## Testez la version en ligne de l'application !
-
-<p align="center">
-  <a href="">Cliquez ici</a>
-</p>
-
----
-
 ## Description
 
 **PyNexus** is a sleek Single Page Application (SPA) built with **React** and **Vite** that analyzes your Python projects **entirely locally**—no server uploads, no cloud dependencies. It scans your codebase to visualize import relationships and automatically generates clean `requirements.txt` files.
@@ -27,6 +19,13 @@ Featuring a stunning **Cyberpunk / Dark Mode** design, PyNexus transforms the mu
 
 ---
 
+## Testez la version en ligne de l'application !
+
+<p align="center">
+  <a href="https://qurnt1.github.io/PyNexus/">Cliquez ici</a>
+</p>
+
+---
 ## ✨ Features
 
 - 🔒 **Local-First:** Leverages the browser's `File System Access API` to read and write directly to your disk. Your code never leaves your machine.
