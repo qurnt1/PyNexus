@@ -360,9 +360,27 @@ export default function DependencyGraph({ data }) {
 
     const handleCenterView = useCallback(() => {
         if (graphRef.current) {
-            graphRef.current.zoomToFit(400, 50);
+            // Unpin all nodes to allow the physics simulation to recalculate positions
+            graphData.nodes.forEach((node) => {
+                node.fx = undefined;
+                node.fy = undefined;
+            });
+
+            // Reheat the simulation to recalculate node positions
+            graphRef.current.d3ReheatSimulation();
+
+            // Clear any locked/hovered state
+            setLockedNode(null);
+            setHoveredNode(null);
+
+            // Zoom to fit after a short delay to let the simulation settle
+            setTimeout(() => {
+                if (graphRef.current) {
+                    graphRef.current.zoomToFit(400, 50);
+                }
+            }, 300);
         }
-    }, []);
+    }, [graphData.nodes]);
 
     // -------------------------------------------------------------------------
     // Empty State
